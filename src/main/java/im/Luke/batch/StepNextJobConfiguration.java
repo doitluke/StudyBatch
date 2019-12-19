@@ -25,8 +25,6 @@ public class StepNextJobConfiguration {
 
     }
 
-
-
     public Step step1() {
 
         return stepBuilderFactory.get("step1").tasklet((contribution, chunkContext) -> {
