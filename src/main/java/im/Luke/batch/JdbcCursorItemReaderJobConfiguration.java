@@ -5,8 +5,8 @@ import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
-import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
+import org.springframework.batch.item.database.JdbcCursorItemReader;
 import org.springframework.batch.item.database.builder.JdbcCursorItemReaderBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -18,9 +18,10 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 @Configuration
 public class JdbcCursorItemReaderJobConfiguration {
+
     private final JobBuilderFactory jobBuilderFactory;
     private final StepBuilderFactory stepBuilderFactory;
-    private final DataSource dataSource;
+    private final DataSource dataSource; // DataSource DI
 
     private static final int chunkSize = 10;
 
@@ -30,24 +31,27 @@ public class JdbcCursorItemReaderJobConfiguration {
                 .build();
     }
 
-    private Step jdbcCursorItemReaderStep() {
-
+    @Bean
+    public Step jdbcCursorItemReaderStep() {
         return stepBuilderFactory.get("jdbcCursorItemReaderStep").<Pay, Pay>chunk(chunkSize)
                 .reader(jdbcCursorItemReader()).writer(jdbcCursorItemWriter()).build();
     }
 
-    private ItemWriter<? super Pay> jdbcCursorItemWriter() {
-        return list -> {
+    @Bean
+    public JdbcCursorItemReader<Pay> jdbcCursorItemReader() {
+        JdbcCursorItemReader<Pay> build =
+                new JdbcCursorItemReaderBuilder<Pay>().fetchSize(chunkSize).dataSource(dataSource)
+                        .rowMapper(new BeanPropertyRowMapper<>(Pay.class)).sql("SELECT * FROM PAY")
+                        .name("jdbcCursorItemReader").build();
+        return build;
+    }
+
+    private ItemWriter<Pay> jdbcCursorItemWriter() {
+        ItemWriter<Pay> itemWriter = list -> {
             for (Pay pay : list) {
                 log.info("Current Pay={}", pay);
             }
         };
-    }
-
-    private ItemReader<? extends Pay> jdbcCursorItemReader() {
-        return new JdbcCursorItemReaderBuilder<Pay>().fetchSize(chunkSize).dataSource(dataSource)
-                .rowMapper(new BeanPropertyRowMapper<>(Pay.class))
-                .sql("SELECT id, amount, tx_name, tx_date_time FROM pay")
-                .name("jdbcCursorItemReader").build();
+        return itemWriter;
     }
 }

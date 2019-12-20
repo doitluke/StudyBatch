@@ -23,11 +23,8 @@ public class Pay {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
     private Long amount;
-
     private String txName;
-
     private LocalDateTime txDateTime;
 
     public Pay(Long amount, String txName, String txDateTime) {
@@ -42,5 +39,4 @@ public class Pay {
         this.txName = txName;
         this.txDateTime = LocalDateTime.parse(txDateTime, FORMATTER);
     }
-
 }
